@@ -29,11 +29,14 @@ Route::get('/soap', function(){
         header("Content-Type: text/xml");
         echo $soapAutoDiscover->generate()->toXml();
         exit;
-    }else{
-        $soap = new \Zend\Soap\Server($serverUrl . '?wsdl');
-        $soap->setObject(new \Zend\Soap\Server\DocumentLiteralWrapper(new App\PlanService()));
-        $soap->handle();
     }
+});
+
+Route::post('/soap', function(){
+    $serverUrl = "http://localhost:8000/soap";
+    $soap = new \Zend\Soap\Server($serverUrl . '?wsdl');
+    $soap->setObject(new \Zend\Soap\Server\DocumentLiteralWrapper(new App\PlanService()));
+    $soap->handle();
 });
 
 Route::resource('movies', 'MovieController');
