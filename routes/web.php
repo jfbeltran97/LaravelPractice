@@ -2,6 +2,7 @@
 use \App\PlanService;
 use \Zend\Soap\AutoDiscover;
 use \Zend\Soap\Wsdl\ComplexTypeStrategy\ArrayOfTypeSequence;
+use Zend\Soap\Server;
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -13,31 +14,68 @@ use \Zend\Soap\Wsdl\ComplexTypeStrategy\ArrayOfTypeSequence;
 |
 */
 
+$serverUrl = "http://127.0.0.1:8080/soap";
+function populateServer($server){
+    $server->setClass(PlanService::class);
+    $server->addFunction('App\PlanService\GetPlans');
+}
+
+function getUrl(){
+    $ip = $_SERVER['SERVER_NAME'];
+    $port = $_SERVER['SERVER_PORT'];
+    return $ip . ':' . $port;
+}
 
 Route::get('/', function () {
     return view('welcome');
 });
 
 Route::get('/soap', function(){
-    $serverUrl = "http://localhost:8000/soap";
-    if(isset($_GET['wsdl'])){
-        $soapAutoDiscover = new AutoDiscover(new ArrayOfTypeSequence());
-        $soapAutoDiscover->setBindingStyle(array('style' => 'document'));
-        $soapAutoDiscover->setOperationBodyStyle(array('use' => 'literal'));
-        $soapAutoDiscover->setClass('App\\PlanService');
-        $soapAutoDiscover->setUri($serverUrl);
-        header("Content-Type: text/xml");
-        echo $soapAutoDiscover->generate()->toXml();
-        exit;
-    }
+    $serverUrl = "http://127.0.0.1:8080";
+    $opts = array(
+        'ssl' => array(
+            'ciphers' => 'RC4-SHA',
+            'verify_peer' => false,
+            'verify_peer_name' => false
+        )
+    );
+    $params = array(
+        'encoding' => 'UTF-8',
+        'verifypeer' => false,
+        'verifyhost' => false,
+        'soap_version' => SOAP_1_2,
+        'trace' => 1,
+        'exceptions' => 1,
+        'stream_context' => stream_context_create($opts)
+    );
+    libxml_disable_entity_loader(false);
+    $client = new SoapClient($serverUrl.'/wsdl', $params);
+    $result =  $client->GetPlans();
+    
+    //$client = new Zend\Soap\Client($serverUrl."/wsdl", $options);
+    return $result;
 });
 
-Route::post('/soap', function(){
-    $serverUrl = "http://localhost:8000/soap";
-    $soap = new \Zend\Soap\Server($serverUrl . '?wsdl');
-    $soap->setObject(new \Zend\Soap\Server\DocumentLiteralWrapper(new App\PlanService()));
-    $soap->handle();
+Route::get('/wsdl', function(){
+    $serverUrl = "http://127.0.0.1:8080";
+    $soapAutoDiscover = new AutoDiscover();
+    $soapAutoDiscover->setUri($serverUrl . '/wsdl');
+    $soapAutoDiscover->setClass(PlanService::class);
+    $soapAutoDiscover->handle();
+    exit;
 });
+
+Route::post('/wsdl', function(){
+    $serverUrl = "http://127.0.0.1:8080" . '/wsdl';
+    $server = new Server($serverUrl);
+    populateServer($server);
+    $server->handle();
+    
+    //$params = array('uri' => 'localhost/wsdl');
+});
+
+Route::any('/server', 'SoapController@server');
+Route::any('/client', 'SoapController@client');
 
 Route::resource('movies', 'MovieController');
 Route::resource('top-ten', 'TopTenController');

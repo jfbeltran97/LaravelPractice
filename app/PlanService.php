@@ -6,7 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class PlanService
 {
-    public function getPlans(){
-        return ["basic", "standard", "premium"];
+    public function GetPlans(){
+        //return ["basic", "standard", "premium"];
+        return "Hola";
     }
 }
